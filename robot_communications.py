@@ -1,15 +1,17 @@
 def format_robot_message(command, val1=None, val2=None, val3=None, val4=None, val5=None, val6=None):
-	msg = ''+command
-	if val1 is not None:
-		msg += val1&0x00FF
-		msg += val1&0xFF00
-	if val2 is not None:
-		msg += val2&0xFF00
-		msg += val2&0x00FF
+	msg = []
+    msg.append(command)
+    if val1 is not None:
+        msg.append((int(val1)&0xFF00)>>8)
+        msg.append(int(val1)&0x00FF)
+    if val2 is not None:
+        msg.append((int(val2)&0xFF00)>>8)
+        msg.append(int(val2)&0x00FF)
 
-	return msg
+	return bytearray(msg)
 
 def parse_robot_message(msg):
+	msg = list(msg)
 	command = msg(0)
 	val1 = (msg(1)<<8)+msg(2)
 	val2 = (msg(3)<<8)+msg(4)
