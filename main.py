@@ -1,8 +1,9 @@
-import socket
-import sys
+from network import network_sock
+from robot_communications import parse_robot_message, send_ok
 
 server_ip = '192.168.1.5'
-server_port = '12345'
+server_port = 12345
+
 
 #messages = []
 
@@ -14,43 +15,25 @@ server_port = '12345'
 
 #sock = ""
 
-class network_sock:
-
-    def __init__(self, sock=None):
-        if sock is None:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
-
-
-    def connect(self, host, port):
-        self.sock.connect((host, port))
-
-    def send(self, msg):
-        sent = self.sock.send(msg)
-        print(sent)
-
-    def receive(self):
-        msg = self.sock.recv(256)
-        if msg is not None:
-            print(msg)
-            return msg
-        return None
 
 
 
 if __name__ == '__main__':
 
-	s = network_sock()
+	s = network_sock(message_size=16)
 	s.connect(server_ip, server_port)
 
-	while s.sock is not None:
+	run_flag = True
+
+	while run_flag:
 
 		message = s.receive()
+
 		if message is not None:
-			print(message)
-			message_to_send = {'command': '10', 'message': 'OK'}
-			s.send(message_to_send)
+			print(f'received {message}')
+			cmd, vals = parse_robot_message(message)
+			print(f'Received command {cmd} with values: {vals}')
+			s.send(send_ok(cmd))
 
 
 
