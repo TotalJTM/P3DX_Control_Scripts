@@ -4,9 +4,45 @@ def format_robot_message(command, val1=None, val2=None, val3=None, val4=None, va
 	if val1 is not None:
 		msg.append((int(val1)&0xFF00)>>8)
 		msg.append(int(val1)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
 	if val2 is not None:
 		msg.append((int(val2)&0xFF00)>>8)
 		msg.append(int(val2)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
+	if val3 is not None:
+		msg.append((int(val3)&0xFF00)>>8)
+		msg.append(int(val3)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
+	if val4 is not None:
+		msg.append((int(val4)&0xFF00)>>8)
+		msg.append(int(val4)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
+	if val5 is not None:
+		msg.append((int(val5)&0xFF00)>>8)
+		msg.append(int(val5)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
+	if val6 is not None:
+		msg.append((int(val6)&0xFF00)>>8)
+		msg.append(int(val6)&0x00FF)
+	else:
+		msg.append(0)
+		msg.append(0)
+
 	return bytearray(msg)
 
 def parse_robot_message(msg):
