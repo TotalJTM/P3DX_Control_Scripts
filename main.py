@@ -1,5 +1,5 @@
 from network import network_sock
-from robot_communications import parse_robot_message, send_ok
+from robot_communications import send_ok, format_msg_from_arr
 
 server_ip = '192.168.1.5'
 server_port = 12345
@@ -20,7 +20,7 @@ server_port = 12345
 
 if __name__ == '__main__':
 
-	s = network_sock(message_size=16)
+	s = network_sock()
 	s.connect(server_ip, server_port)
 
 	run_flag = True
@@ -31,9 +31,7 @@ if __name__ == '__main__':
 
 		if message is not None:
 			print(f'received {message}')
-			cmd, vals = parse_robot_message(message)
-			print(f'Received command {cmd} with values: {vals}')
-			s.send(send_ok(cmd))
+			s.send(format_msg_from_arr(send_ok(cmd)))
 
 
 

@@ -3,7 +3,7 @@ import sys
 
 class network_sock:
 
-    def __init__(self, message_size, sock=None):
+    def __init__(self, message_size=256, sock=None):
         if sock is None:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
@@ -30,7 +30,7 @@ class network_sock:
                 self.clientsock, self.clientaddr = self.sock.accept()
             self.clientsock.send(msg)
         else:
-            self.sock.send(bytes(msg,"utf-8"))
+            self.sock.send(msg)
 
     def receive(self):
         if self.master:
