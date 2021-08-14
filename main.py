@@ -36,13 +36,18 @@ class P3_DX_robot:
 			self.send_message(10, [self.left_motor_speed,self.right_motor_speed])
 
 	def send_message(self, cmd, vals):
-		msg = f'<{cmd},'
-		for index, vals in enumerate(vals):
-			msg += f'{int(vals)},'
-		msg = msg[:-1] + '>'
-		print(msg)
-		print(self.robot_controller.send(msg))
-		print(self.robot_controller.receive())
+		if self.robot_controller is not None:
+			msg = f'<{cmd},'
+			for index, vals in enumerate(vals):
+				msg += f'{int(vals)},'
+			msg = msg[:-1] + '>'
+			print(msg)
+			print(self.robot_controller.send(msg))
+			print(self.robot_controller.receive())
+			return True
+		else:
+			print(f'message could not be sent, no controller')
+			return False
 
 def handle_message_commands(message):
     message = json.loads(message.decode())
@@ -53,7 +58,7 @@ if __name__ == '__main__':
 
 	#s = network_sock()
 	#s.connect(server_ip, server_port)
-	arduino = serial_port(115200,prefix='/dev/ttyUSB')
+	arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
 	#arduino = serial_port(115200,port=24,prefix='COM')
 	#print(arduino.receive())
 	robot = P3_DX_robot(robot_controller=arduino)
