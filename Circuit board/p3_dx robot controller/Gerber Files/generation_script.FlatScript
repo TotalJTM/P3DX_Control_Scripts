@@ -1,0 +1,57 @@
+#Created 8/2/21 by JTM
+#Generic mill profile
+#
+#ALL NUMBERS ARE IN MM
+ 
+puts "**************** SETTING INITIAL VARS*******************"
+
+#set_path $PATH/
+
+set cad_name "p3_dx robot controller"
+set work_dir "E:/jermc/Desktop/P3-DX Robot Upgrade/Circuit board/p3_dx robot controller/Gerber Files/"
+
+puts "**************** LOADING FILES*******************"
+
+open_gerber $work_dir$cad_name-B_Cu.gbr -outname pcb_bot_traces
+open_gerber $work_dir$cad_name-F_Cu.gbr -outname pcb_top_traces
+open_gerber $work_dir$cad_name-Edge_Cuts.gbr -outname pcb_edge_cuts
+open_excellon $work_dir$cad_name-PTH.drl -outname main_drills
+open_excellon $work_dir$cad_name-NPTH.drl -outname hardware_drills
+
+#plot_all
+puts "**************** DO MIRROR ACTIONS*******************"
+
+aligndrill pcb_edge_cuts -dia 1.2  -box pcb_edge_cuts -axis "Y" -holes (-5, 0),(-5, 38) -outname align_drill_geometry
+
+drillcncjob align_drill_geometry -drillz -5.0 -travelz  2.0  -feedrate_z 500.0 -feedrate_rapid 800.0 -spindlespeed  13337  -outname align_drill_job
+
+mirror pcb_bot_traces -axis "Y" -box pcb_edge_cuts
+
+plot_all
+puts "**************** GENERATE GEOMETRY*******************"
+
+isolate pcb_bot_traces -dia .14 -passes 3 -overlap 50 -combine True -outname iso_bot_traces
+cncjob
+
+isolate pcb_top_traces -dia .14 -passes 3 -overlap 50 -combine True -outname iso_top_traces
+
+cutout pcb_edge_cuts -dia 1.2 -margin 0.65 -gapsize 2 -gaps "lr" -outname board_cutout
+#cutout pcb_edge_cuts -dia 1.2 -margin 0.65 -gapsize 2 -gaps "tb" -outname board_cutout
+
+plot_all
+puts "**************** GENERATE DRILLS*******************"
+
+#drillcncjob main_drills -tools 1 -drillz 0.2 -travelz  2 -feedrate 300 -spindlespeed  13337 -toolchange False -outname via_drill
+drillcncjob main_drills -tools all -drillz 0.2 -travelz  2 -feedrate 300 -spindlespeed  13337 -toolchange False -outname pcb_drill
+
+puts "**************** PLOTTING*******************"
+
+plot_all
+
+puts "**************** EXPORTING*******************"
+
+export_gcode pcb_drill $cad_name
+#export_gcode via_drill $cad_name
+export_gcode iso_bot_traces $cad_name
+export_gcode iso_top_traces $cad_name
+export_gcode board_cutout $cad_name

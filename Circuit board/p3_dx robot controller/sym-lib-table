@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "P3-DX Robot")(type Legacy)(uri "${KIPRJMOD}/P3-DX Robot.lib")(options "")(descr ""))
+)
