@@ -92,6 +92,7 @@ def normalize_joy(val):
     else:
         return newval
 
+#https://home.kendra.com/mauser/joystick.html
 deadzone = 10
 def mix_joy(xval, yval):
     newx = (((xval+joystick_max_val)*(90*2))/(2*joystick_max_val))-90
@@ -183,7 +184,7 @@ if __name__ == "__main__":
                             limit = 40
                         else:
                             limit = 10
-                            
+
                         left_motor, right_motor = mix_joy(x_joy, y_joy)
                         for item in commands.motor(left_motor_val=left_motor, right_motor_val=right_motor):
                             pay_pack.append(item)

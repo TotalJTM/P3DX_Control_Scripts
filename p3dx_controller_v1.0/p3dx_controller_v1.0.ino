@@ -150,10 +150,7 @@ void handle_message(){
     update_motors = true;
     //Serial.println("<10,OK>");
   }else if(command == 11){  //encoder println divisions (message is sent to master every n encoder ticks) <11,1000,1000>
-    encoder_left_divisions = strtol(last_token, &next_token, 10);
-    last_token = next_token + 1;
-    encoder_right_divisions = strtol(last_token, &next_token, 10);
-    last_token = next_token + 1;
+    Serial.print("<11,"); Serial.print(L_motor_encoder_count); Serial.print(","); Serial.print(R_motor_encoder_count);Serial.println(">");
     //Serial.println("<11,OK>");
   }else if(command == 12){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
     encoder_left_alert_in = strtod(last_token, &next_token);
@@ -161,6 +158,15 @@ void handle_message(){
     encoder_right_alert_in = strtod(last_token, &next_token);
     last_token = next_token + 1;
     //Serial.println("<12,OK>");
+  }else if(command == 13){
+    int reset_left = strtol(last_token, &next_token, 10);
+    last_token = next_token + 1;
+    int reset_right = strtol(last_token, &next_token, 10);
+    last_token = next_token + 1;
+    if(reset_left != 0)
+      L_motor_encoder_count = 0;
+    if(reset_right != 0)
+      R_motor_encoder_count = 0;
   }
 }
 
@@ -197,6 +203,8 @@ void handle_motors(){
 
 //void rotate()
 
+uint16_t encoder_message_interval = 200; //(ms) time between sending encoder message
+uint32_t last_encoder_message = 0;
 
 void loop() {
   if (Serial.available() > 0) {
@@ -212,22 +220,18 @@ void loop() {
     }
   }
   
-  if(left_enc_flag == true){
-    Serial.print("<11,L:"); Serial.print(L_motor_encoder_count); Serial.println(">");
-    left_enc_flag = false;
-  }
-  if(right_enc_flag == true){
-    Serial.print("<11,R:"); Serial.print(R_motor_encoder_count); Serial.println(">");
-    right_enc_flag = false;
-  }
+  //if(last_encoder_message+encoder_message_interval >= millis()){
+ //   Serial.print("<11,"); Serial.print(L_motor_encoder_count); Serial.print(","); Serial.print(R_motor_encoder_count);Serial.println(">");
+ //   last_encoder_message = millis();
+ // }
 
   float current_encoder_in_left = convert_encoder_to_inches(L_motor_encoder_count);
   float current_encoder_in_right = convert_encoder_to_inches(R_motor_encoder_count);
   //Serial.println(current_encoder_in_left);
-  if(encoder_left_alert_in != 0.0 && current_encoder_in_left >= encoder_left_alert_in+last_encoder_left_alert_in){
-    last_encoder_left_alert_in = current_encoder_in_left;
-    Serial.print("<12,R:"); Serial.print(current_encoder_in_left); Serial.println(">");
-  }
+  //if(encoder_left_alert_in != 0.0 && current_encoder_in_left >= encoder_left_alert_in+last_encoder_left_alert_in){
+  //  last_encoder_left_alert_in = current_encoder_in_left;
+  //  Serial.print("<12,R:"); Serial.print(current_encoder_in_left); Serial.println(">");
+  //}
   
   //analogWrite(PIN_L_motor_pwm,1023/10);
   //analogWrite(PIN_R_motor_pwm,1023/10);

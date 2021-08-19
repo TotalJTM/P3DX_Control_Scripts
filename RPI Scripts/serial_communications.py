@@ -43,7 +43,7 @@ class serial_port:
 			if response:
 				resp = response.decode('utf-8').strip('\r\n').strip('<').strip('>')
 				resp = resp.split(',')
-				return resp[1], resp[2:]
+				return resp[0], resp[1:]
 			else:
 				return None
 		else:

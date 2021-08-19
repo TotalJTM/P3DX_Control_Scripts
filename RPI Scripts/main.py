@@ -2,6 +2,7 @@ from network import network_sock
 from robot_communications import commands
 from serial_communications import serial_port
 import time, json
+from math import pi, sqrt
 
 server_ip = '192.168.1.5'
 server_port = 12345
@@ -46,6 +47,11 @@ class P3_DX_robot:
 		self.last_left_enc = 0
 		self.last_right_enc = 0
 
+		self.wheel_distance = 13.0
+		self.wheel_diam = 7.65
+		self.enc_ticks_per_rev = 19105.0
+		self.wheel_dist_circum = pi*self.wheel_distance
+		self.ticks_per_inch = self.enc_ticks_per_rev/(self.wheel_diam*pi)
 
 
 	#def update_motor_speed(self, left = None, right = None):
@@ -74,8 +80,22 @@ class P3_DX_robot:
 
 	def get_encoder_values(self):
 		if self.encoder_update_timer.check_timer():
-        	self.send_message(11)
-        	cmd, data = self.robot_controller.receive()
+			self.send_message(11)
+			cmd, data = self.robot_controller.receive()
+			self.last_left_enc = data[0]
+			self.last_right_enc = data[1]
+
+	def distance_moved(self):
+		return (self.last_left_enc/self.ticks_per_inch), (self.last_right_enc/self.ticks_per_inch)
+
+	def reset_encoder_values(self, left_enc=False, right_enc=False):
+		arr = [0,0]
+		if left_enc:
+			arr[0] = 1
+		if right_enc:
+			arr[1] = 1
+
+		self.send_message(13, arr)
 
 	def send_message(self, cmd, vals=[]):
 		if self.robot_controller is not None:
@@ -93,9 +113,9 @@ class P3_DX_robot:
 
 
 def handle_message_commands(message):
-    message = json.loads(message.decode())
-    items = message["arr"]
-    return items
+	message = json.loads(message.decode())
+	items = message["arr"]
+	return items
 
 
 if __name__ == '__main__':
