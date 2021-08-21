@@ -202,8 +202,8 @@ if __name__ == "__main__":
             if len(pay_pack) > 0:
                 print(commands.format_arr(pay_pack))
                 s.send(commands.format_arr(pay_pack))
-                message = s.receive()
-                print(message)
+                #message = s.receive()
+                #print(message)
             #s.send(commands.format_arr(pay_pack))
             #message = s.receive()
             #print(message)
@@ -216,3 +216,4 @@ if __name__ == "__main__":
         s.send(commands.format_arr(commands.stop()))
         s.close()
         sys.exit(0)
+        exit()

@@ -4,6 +4,9 @@ from serial_communications import serial_port
 import time, json
 from math import pi, sqrt
 
+from _thread import *
+import threading
+
 server_ip = '192.168.1.5'
 server_port = 12345
 
@@ -39,8 +42,8 @@ class Timer:
 class P3_DX_robot:
 	def __init__(self, robot_controller = None):
 		self.robot_controller = robot_controller
-		self.motor_update_timer = Timer(0.025)
-		self.encoder_update_timer = Timer(0.01)
+		self.motor_update_timer = Timer(0.1)
+		self.encoder_update_timer = Timer(0.05)
 
 		self.left_motor_speed = 0
 		self.right_motor_speed = 0
@@ -79,8 +82,8 @@ class P3_DX_robot:
 		self.motor_update_timer.start()
 		#self.encoder_update_timer.start()
 
-	def update_robot_controller(self):
-		if self.motor_update_timer.check_timer():
+	def update_robot_controller(self, forced=False):
+		if self.motor_update_timer.check_timer() or forced:
 			self.send_message(10, [int(self.left_motor_speed),int(self.right_motor_speed)])
 			self.motor_update_timer.start()
 
@@ -120,10 +123,39 @@ class P3_DX_robot:
 
 
 def handle_message_commands(message):
-	message = json.loads(message.decode())
-	items = message["arr"]
-	return items
+	try:
+		message = message.decode()
+		if message.count('arr') > 1:
+			return None
+		message = json.loads(message)
 
+		items = message["arr"]
+		return items
+	except:
+		return None
+
+#
+#arduino_queue = []
+#
+#def arduino_thread(robot):
+#	robot.update_robot_controller()
+
+#
+socket_queue = []
+#
+def socket_thread(socket, robot):
+	socket_connected = True
+	while socket_connected:
+		message = socket.receive()
+		if message.decode() is '':
+			terminate()
+		if message is not None:
+			print(f'received {message}')
+			message_items = handle_message_commands(message)
+			if message_items is not None:
+				robot.update_values(message_items)
+
+	socket.close()
 
 if __name__ == '__main__':
 
@@ -134,7 +166,8 @@ if __name__ == '__main__':
 
 	robot = P3_DX_robot(robot_controller=arduino)
 
-	robot.send_message(91, [robot.kp,robot.ki,robot.kd])
+	#robot.send_message(91, [robot.kp,robot.ki,robot.kd])
+	robot.send_message(92, [1])
 	#print(robot.robot_controller.receive())
 
 	s = network_sock()
@@ -143,21 +176,33 @@ if __name__ == '__main__':
 
 	run_flag = True
 
+	sock_thread = threading.Thread(target=socket_thread, args=(s, robot))
+	print(sock_thread)
+	sock_thread.start()
 	robot.start_robot_update_timers()
 
 	while run_flag:
 
-		message = s.receive()
+		#message = s.receive()
 
-		if message is not None:
-			print(f'received {message}')
-			message_items = handle_message_commands(message)
+		#if message is not None:
+		#	print(f'received {message}')
+		#	message_items = handle_message_commands(message)
 			
-			robot.update_values(message_items)
-
-
+		#	robot.update_values(message_items)
+		if not sock_thread.is_alive():
+			robot.left_motor_speed = 0
+			robot.right_motor_speed = 0
+			robot.update_robot_controller(forced=True)
+			#print("looking for new socket connection")
+			run_flag = False
+			#s = network_sock()
+			#s.connect(server_ip, server_port)
+			#print("new socket connected")
+			#sock_thread = threading.Thread(target=socket_thread, args=(s, robot))
+			#sock_thread.start()
 			#print(arduino.receive())
 
-			s.send(commands.format_arr(commands.ok()))
+		#	s.send(commands.format_arr(commands.ok()))
 
 		robot.update_robot_controller()
