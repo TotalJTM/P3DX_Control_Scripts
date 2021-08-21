@@ -39,8 +39,8 @@ class Timer:
 class P3_DX_robot:
 	def __init__(self, robot_controller = None):
 		self.robot_controller = robot_controller
-		self.motor_update_timer = Timer(0.1)
-		self.encoder_update_timer = Timer(0.05)
+		self.motor_update_timer = Timer(0.025)
+		self.encoder_update_timer = Timer(0.01)
 
 		self.left_motor_speed = 0
 		self.right_motor_speed = 0
@@ -52,6 +52,10 @@ class P3_DX_robot:
 		self.enc_ticks_per_rev = 19105.0
 		self.wheel_dist_circum = pi*self.wheel_distance
 		self.ticks_per_inch = self.enc_ticks_per_rev/(self.wheel_diam*pi)
+
+		self.kp = 0.85
+		self.ki = 0.85
+		self.kd = 1
 
 
 	#def update_motor_speed(self, left = None, right = None):
@@ -73,10 +77,12 @@ class P3_DX_robot:
 
 	def start_robot_update_timers(self):
 		self.motor_update_timer.start()
+		#self.encoder_update_timer.start()
 
 	def update_robot_controller(self):
 		if self.motor_update_timer.check_timer():
-			self.send_message(10, [self.left_motor_speed,self.right_motor_speed])
+			self.send_message(10, [int(self.left_motor_speed),int(self.right_motor_speed)])
+			self.motor_update_timer.start()
 
 	def get_encoder_values(self):
 		if self.encoder_update_timer.check_timer():
@@ -84,6 +90,7 @@ class P3_DX_robot:
 			cmd, data = self.robot_controller.receive()
 			self.last_left_enc = data[0]
 			self.last_right_enc = data[1]
+			self.encoder_update_timer.start()
 
 	def distance_moved(self):
 		return (self.last_left_enc/self.ticks_per_inch), (self.last_right_enc/self.ticks_per_inch)
@@ -101,7 +108,7 @@ class P3_DX_robot:
 		if self.robot_controller is not None:
 			msg = f'<{cmd},'
 			for index, vals in enumerate(vals):
-				msg += f'{int(vals)},'
+				msg += f'{vals},'
 			msg = msg[:-1] + '>'
 			print(msg)
 			print(self.robot_controller.send(msg))
@@ -120,12 +127,15 @@ def handle_message_commands(message):
 
 if __name__ == '__main__':
 
-	arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
-	#arduino = serial_port(115200,port=24,prefix='COM')
+	#arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
+	arduino = serial_port(115200,port=24,prefix='COM')
 	print("controller assigned")
 	print(arduino.receive())
 
 	robot = P3_DX_robot(robot_controller=arduino)
+
+	robot.send_message(91, [robot.kp,robot.ki,robot.kd])
+	#print(robot.robot_controller.receive())
 
 	s = network_sock()
 	s.connect(server_ip, server_port)
