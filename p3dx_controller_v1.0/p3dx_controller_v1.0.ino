@@ -169,6 +169,38 @@ void setup() {
   Serial.println("<E,CONTROL_STARTED>");
 }
 
+int buzzer_frequency = 0;
+
+void handle_buzzer(){
+  if(buzzer_frequency > 30){
+    tone(PIN_UI_buzzer, buzzer_frequency);
+  }else{
+    noTone(PIN_UI_buzzer);
+    //digitalWrite(PIN_UI_buzzer, LOW);
+  }
+}
+
+int LED_interval1 = 0, LED_interval2 = 0;
+int LED_mode = 0;
+
+long last_LED_change_time = 0;
+bool is_inteval1 = true;
+void handle_LED(){
+  long curr_time = millis();
+  if(is_inteval1 == true && (last_LED_change_time+LED_interval1) > curr_time && LED_interval1 > 0){
+    digitalWrite(PIN_UI_status_LED, HIGH);
+    is_inteval1 = false;
+    last_LED_change_time = curr_time;
+  }else{
+    digitalWrite(PIN_UI_status_LED, LOW);
+  }
+  if(is_inteval1 == false && (last_LED_change_time+LED_interval2) > curr_time && LED_interval2 > 0){
+    digitalWrite(PIN_UI_status_LED, LOW);
+    is_inteval1 = true;
+    last_LED_change_time = curr_time;
+  }
+}
+
 bool last_reset_switch_state = digitalRead(PIN_UI_reset_btn);
 bool last_motor_switch_state = digitalRead(PIN_UI_motors_btn);
 bool last_aux1_switch_state = digitalRead(PIN_UI_aux1_btn);
@@ -218,7 +250,18 @@ void handle_message(){
   }else if(command == 20){
     Serial.print("<20,"); Serial.print(last_reset_switch_state); Serial.print(","); Serial.print(last_motor_switch_state);
     Serial.print(","); Serial.print(last_aux1_switch_state); Serial.print(","); Serial.print(last_aux2_switch_state); Serial.println(">");
-  }else if(command == 90){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
+  }else if(command == 21){  // <21,1000> <21,0>
+    buzzer_frequency = strtol(last_token, &next_token, 10);
+    last_token = next_token + 1;
+    handle_buzzer();
+  }else if(command == 22){  // <22,500,250>
+    LED_interval1 = strtol(last_token, &next_token, 10);
+    last_token = next_token + 1;
+    LED_interval2 = strtol(last_token, &next_token, 10);
+    last_token = next_token + 1;
+  }
+  
+  else if(command == 90){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
     //encoder_left_alert_in = strtod(last_token, &next_token);
     //last_token = next_token + 1;
     //encoder_right_alert_in = strtod(last_token, &next_token);

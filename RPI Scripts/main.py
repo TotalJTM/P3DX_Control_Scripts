@@ -4,6 +4,8 @@ from serial_communications import serial_port
 import time, json
 from math import pi, sqrt
 
+from robot_buzzer import music_box, songs
+
 from _thread import *
 import threading
 
@@ -57,6 +59,9 @@ class P3_DX_robot:
 		self.ki = 0.85
 		self.kd = 1
 
+		self.robot_music_box = None
+		self.last_buzzer_freq = 0
+
 	def update_values_with_json(self, arr):
 		for item in arr:
 				#handle motor keys
@@ -106,7 +111,20 @@ class P3_DX_robot:
 		#if self.last_aux1_button_state == 0:
 			
 		#if self.last_aux2_button_state == 0:
-			
+
+	def start_music_box(self, song_number=0, tempo=160):
+		self.robot_music_box = music_box(song=songs[song_number], tempo=tempo)
+
+	def handle_music_box(self,):
+		if self.robot_music_box is not None:
+			f = self.robot_music_box.get_note()
+			if f != self.last_buzzer_freq and f != None:
+				self.send_message(21, [f])
+				self.last_buzzer_freq = f
+
+		if self.robot_music_box.notes == self.robot_music_box.current_note and self.robot_music_box.note_on == False:
+			self.robot_music_box = None
+					
 
 	def distance_moved(self):
 		return (self.last_left_enc/self.ticks_per_inch), (self.last_right_enc/self.ticks_per_inch)
@@ -135,6 +153,7 @@ class P3_DX_robot:
 			return False
 
 
+
 def handle_message_commands(message):
 	try:
 		message = message.decode()
@@ -160,7 +179,7 @@ def socket_thread(socket, robot):
 	socket_connected = True
 	while socket_connected:
 		message = socket.receive()
-		if message.decode() is '':
+		if message.decode() == '':
 			terminate()
 		if message is not None:
 			print(f'received {message}')
@@ -169,6 +188,8 @@ def socket_thread(socket, robot):
 				robot.update_values_with_json(message_items)
 
 	socket.close()
+
+
 
 if __name__ == '__main__':
 
@@ -192,6 +213,10 @@ if __name__ == '__main__':
 	sock_thread.start()
 	robot.start_robot_update_timers()
 
+	robot.start_music_box(1, tempo=160)
+	#robot.start_music_box(2, tempo=114)
+	#robot.start_music_box(3, tempo=144)
+
 	while run_flag:
 
 		if not sock_thread.is_alive():
@@ -212,3 +237,4 @@ if __name__ == '__main__':
 		robot.get_encoder_values()
 		robot.get_button_values()
 		robot.handle_buttons()
+		robot.handle_music_box()
