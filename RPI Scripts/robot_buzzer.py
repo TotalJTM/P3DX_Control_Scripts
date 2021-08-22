@@ -1,8 +1,10 @@
-#port of arduino-songs to python script with similar functionality
+#JTM 2021
+#port of arduino-songs library to python script with similar functionality
 #current note is sent to arduino after timer expires
-#https://github.com/robsoncouto/arduino-songs
+#library can be found at https://github.com/robsoncouto/arduino-songs
 import time
 
+#predefined note frequencies, taken from library
 NOTE_B0 = 31
 NOTE_C1 = 33
 NOTE_CS1 = 35
@@ -94,6 +96,9 @@ NOTE_D8 = 4699
 NOTE_DS8 = 4978
 REST = 0
 
+#songs array to store arrays of notes (note_name, duration)
+#array entries must have an even number of items, each note must have a pitch and duration
+#the following songs were taken from the arduino-songs examples
 songs = [		
 			#song 0 is nothing
 			[
@@ -229,7 +234,13 @@ songs = [
 			]
 		]
 
+#music box class acts like a music box
+#start the music box by creating a music_box object and call get_note to get the current pitch
+#all calculations and timekeeping is done within the class
+#use this by calling the object, calling get_note and monitoring the output freq
+#when the output freq changes, output the new freq to buzzer 
 class music_box:
+	#arguments are: song array index (or custom array with same format) and a song tempo
 	def __init__(self, song, tempo=160):
 		self.tempo = 160.0
 		self.song = song
@@ -241,6 +252,8 @@ class music_box:
 		self.last_note_change = time.perf_counter()
 		self.note_on = True
 
+	#function to move to the next note in the song
+	#will calculate dependant variables and handle a dotted note (a negative duration)
 	def advance_note(self):
 		self.current_note += 1
 		self.divider = self.song[(self.current_note*2)+1]
@@ -251,26 +264,34 @@ class music_box:
 			self.noteduration = self.wholenote/self.divider
 			self.noteduration *= 1.5
 
-
+	#function to get the frequency of the current note
+	#notes are played for 90% duration before a freq of 0 is send for the last 10%
+	#this makes the notes more distinguished
+	#frequency of current note is returned when called, if song is finished then None is returned
 	def get_note(self):
+		#if the current note is not the last note
 		if self.current_note < self.notes:
+			#get current time
 			curr_time = time.perf_counter()
+			#check if the note is playing and has reached 90% duration
+			#record current time as last not change, set note_on to false
 			if (self.last_note_change+(self.noteduration*0.9)) < curr_time and self.note_on == True:
 				self.last_note_change = curr_time
 				self.note_on = False
-
+			#check if the note is not playing and has reached 10% duration
+			#record current time as last not change, set note_on to true and advance to next note
 			if (self.last_note_change+(self.noteduration*0.1)) < curr_time and self.note_on == False:
 				self.last_note_change = curr_time
-				freq = 0
 				self.note_on = True
 				self.advance_note()
-
+			#if the note is on, assign the note frequency to freq
+			#otherwise set freq to 0
 			if self.note_on:
 				freq = self.song[(self.current_note*2)]
 			else:
 				freq = 0
 
-
+			#return the set freq
 			return freq
 
 		return None

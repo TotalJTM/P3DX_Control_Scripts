@@ -169,25 +169,30 @@ void setup() {
   Serial.println("<E,CONTROL_STARTED>");
 }
 
+//== buzzer control ==//
 int buzzer_frequency = 0;
-
+//function to turn the buzzer on and off, controlled by command sent from RPI
 void handle_buzzer(){
   if(buzzer_frequency > 30){
     tone(PIN_UI_buzzer, buzzer_frequency);
   }else{
     noTone(PIN_UI_buzzer);
-    //digitalWrite(PIN_UI_buzzer, LOW);
   }
 }
-
+//== status LED control ==//
+//variables to store square wave intervals
+//interval1 puts the LED HIGH for n milliseconds, interval2 puts the LED LOW for n milliseconds
 int LED_interval1 = 0, LED_interval2 = 0;
-int LED_mode = 0;
 
-long last_LED_change_time = 0;
-bool is_inteval1 = true;
+long last_LED_change_time = 0;  //stores the time the LED was changed
+bool is_inteval1 = true;  //stores if the LED is currently interval 1 or 2
+//function to turn the LED on and off
+//LED intervals are set with RPI command
 void handle_LED(){
-  long curr_time = millis();
+  long curr_time = millis();  //get current time
+  //check if interval1 (LED HIGH duration) and if timer (last time + duration) is greater than current time
   if(is_inteval1 == true && (last_LED_change_time+LED_interval1) > curr_time && LED_interval1 > 0){
+    //set pin high
     digitalWrite(PIN_UI_status_LED, HIGH);
     is_inteval1 = false;
     last_LED_change_time = curr_time;
@@ -259,9 +264,7 @@ void handle_message(){
     last_token = next_token + 1;
     LED_interval2 = strtol(last_token, &next_token, 10);
     last_token = next_token + 1;
-  }
-  
-  else if(command == 90){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
+  }else if(command == 90){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
     //encoder_left_alert_in = strtod(last_token, &next_token);
     //last_token = next_token + 1;
     //encoder_right_alert_in = strtod(last_token, &next_token);
