@@ -169,6 +169,11 @@ void setup() {
   Serial.println("<E,CONTROL_STARTED>");
 }
 
+bool last_reset_switch_state = digitalRead(PIN_UI_reset_btn);
+bool last_motor_switch_state = digitalRead(PIN_UI_motors_btn);
+bool last_aux1_switch_state = digitalRead(PIN_UI_aux1_btn);
+bool last_aux2_switch_state = digitalRead(PIN_UI_aux2_btn);
+
 // Serial communication buffers
 const unsigned int BUFFER_SIZE = 256;
 char message_buffer[BUFFER_SIZE];
@@ -210,7 +215,9 @@ void handle_message(){
     last_token = next_token + 1;
     if(left_encoder_reset != 0) L_motor_encoder_count = 0;
     if(right_encoder_reset != 0) R_motor_encoder_count = 0;
-    
+  }else if(command == 20){
+    Serial.print("<20,"); Serial.print(last_reset_switch_state); Serial.print(","); Serial.print(last_motor_switch_state);
+    Serial.print(","); Serial.print(last_aux1_switch_state); Serial.print(","); Serial.print(last_aux2_switch_state); Serial.println(">");
   }else if(command == 90){  //encoder println divisions (message is sent to master every n encoder ticks) <12,0.1,0.1>
     //encoder_left_alert_in = strtod(last_token, &next_token);
     //last_token = next_token + 1;
@@ -270,11 +277,6 @@ uint32_t last_encoder_message = 0;
 
 double acceptable_motor_speed_difference = 0.1;
 
-bool last_reset_switch_state = digitalRead(PIN_UI_reset_btn);
-bool last_motor_switch_state = digitalRead(PIN_UI_motors_btn);
-bool last_aux1_switch_state = digitalRead(PIN_UI_aux1_btn);
-bool last_aux2_switch_state = digitalRead(PIN_UI_aux2_btn);
-
 void loop() {
   if (Serial.available() > 0) {
     unsigned int message_length = Serial.readBytesUntil('>', message_buffer, 256);
@@ -316,8 +318,18 @@ void loop() {
       target_left_speed = 0.0;
       target_right_speed = 0.0;
       handle_motors();
-      Serial.println("<99>");
     }
     last_motor_switch_state = pin_state;
   }
+  //handle aux1 button state
+  pin_state = digitalRead(PIN_UI_aux1_btn);
+  if(pin_state != last_aux1_switch_state){
+    last_aux1_switch_state = pin_state;
+  }
+  //handle aux2 button state
+  pin_state = digitalRead(PIN_UI_aux2_btn);
+  if(pin_state != last_aux2_switch_state){
+    last_aux2_switch_state = pin_state;
+  }
+  
 }

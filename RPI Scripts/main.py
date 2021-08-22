@@ -10,16 +10,7 @@ import threading
 server_ip = '192.168.1.5'
 server_port = 12345
 
-
-#messages = []
-
-#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#s.connect((socket.gethostname(), server_port))
-
-#msg = s.recv(1024)
-#print(msg.decode("utf-8"))
-
-#sock = ""
+autoreconnect_socket = False
 
 def constrain(n, minn, maxn):
     return max(min(maxn, n), minn)
@@ -44,11 +35,17 @@ class P3_DX_robot:
 		self.robot_controller = robot_controller
 		self.motor_update_timer = Timer(0.1)
 		self.encoder_update_timer = Timer(0.05)
+		self.button_update_timer = Timer(0.1)
 
 		self.left_motor_speed = 0
 		self.right_motor_speed = 0
 		self.last_left_enc = 0
 		self.last_right_enc = 0
+
+		self.last_reset_button_state = 1
+		self.last_motor_button_state = 1
+		self.last_aux1_switch_state = 1
+		self.last_aux2_switch_state = 1
 
 		self.wheel_distance = 13.0
 		self.wheel_diam = 7.65
@@ -60,17 +57,7 @@ class P3_DX_robot:
 		self.ki = 0.85
 		self.kd = 1
 
-
-	#def update_motor_speed(self, left = None, right = None):
-	#	if left is not None:
-	#		self.left_motor_speed = constrain(left, -100, 100)
-	#	if right is not None:
-	#		self.right_motor_speed = constrain(right, -100, 100)
-
-	#	self.send_message(10, [self.left_motor_speed,self.right_motor_speed])
-
-
-	def update_values(self, arr):
+	def update_values_with_json(self, arr):
 		for item in arr:
 				#handle motor keys
 				if "left_motor_speed" in item:
@@ -80,9 +67,10 @@ class P3_DX_robot:
 
 	def start_robot_update_timers(self):
 		self.motor_update_timer.start()
-		#self.encoder_update_timer.start()
+		self.encoder_update_timer.start()
+		self.button_update_timer.start()
 
-	def update_robot_controller(self, forced=False):
+	def update_motor_speed(self, forced=False):
 		if self.motor_update_timer.check_timer() or forced:
 			self.send_message(10, [int(self.left_motor_speed),int(self.right_motor_speed)])
 			self.motor_update_timer.start()
@@ -91,9 +79,34 @@ class P3_DX_robot:
 		if self.encoder_update_timer.check_timer():
 			self.send_message(11)
 			cmd, data = self.robot_controller.receive()
-			self.last_left_enc = data[0]
-			self.last_right_enc = data[1]
+			print(f'cmd: {cmd}. data: {data}')
+			self.last_left_enc = int(data[0])
+			self.last_right_enc = int(data[1])
 			self.encoder_update_timer.start()
+
+	def get_button_values(self):
+		if self.button_update_timer.check_timer():
+			self.send_message(20)
+			cmd, data = self.robot_controller.receive()
+			print(f'cmd: {cmd}. data: {data}')
+			self.last_reset_button_state = int(data[0])
+			self.last_motor_button_state = int(data[1])
+			self.last_aux1_switch_state = int(data[2])
+			self.last_aux2_switch_state = int(data[3])
+			self.button_update_timer.start()
+
+	def handle_buttons(self):
+		#if self.last_reset_button_state == 0:
+			
+		if self.last_motor_button_state == 0:
+			self.left_motor_speed = 0
+			self.right_motor_speed = 0
+			print("Motors reset by robot")
+			exit()
+		#if self.last_aux1_button_state == 0:
+			
+		#if self.last_aux2_button_state == 0:
+			
 
 	def distance_moved(self):
 		return (self.last_left_enc/self.ticks_per_inch), (self.last_right_enc/self.ticks_per_inch)
@@ -138,7 +151,7 @@ def handle_message_commands(message):
 #arduino_queue = []
 #
 #def arduino_thread(robot):
-#	robot.update_robot_controller()
+#	robot.update_motor_speed()
 
 #
 socket_queue = []
@@ -153,14 +166,14 @@ def socket_thread(socket, robot):
 			print(f'received {message}')
 			message_items = handle_message_commands(message)
 			if message_items is not None:
-				robot.update_values(message_items)
+				robot.update_values_with_json(message_items)
 
 	socket.close()
 
 if __name__ == '__main__':
 
-	#arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
-	arduino = serial_port(115200,port=24,prefix='COM')
+	arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
+	#arduino = serial_port(115200,port=24,prefix='COM')
 	print("controller assigned")
 	print(arduino.receive())
 
@@ -168,11 +181,9 @@ if __name__ == '__main__':
 
 	#robot.send_message(91, [robot.kp,robot.ki,robot.kd])
 	robot.send_message(92, [1])
-	#print(robot.robot_controller.receive())
 
 	s = network_sock()
 	s.connect(server_ip, server_port)
-	#robot.update_motor_speed(left=0)
 
 	run_flag = True
 
@@ -183,26 +194,21 @@ if __name__ == '__main__':
 
 	while run_flag:
 
-		#message = s.receive()
-
-		#if message is not None:
-		#	print(f'received {message}')
-		#	message_items = handle_message_commands(message)
-			
-		#	robot.update_values(message_items)
 		if not sock_thread.is_alive():
 			robot.left_motor_speed = 0
 			robot.right_motor_speed = 0
-			robot.update_robot_controller(forced=True)
-			#print("looking for new socket connection")
-			run_flag = False
-			#s = network_sock()
-			#s.connect(server_ip, server_port)
-			#print("new socket connected")
-			#sock_thread = threading.Thread(target=socket_thread, args=(s, robot))
-			#sock_thread.start()
-			#print(arduino.receive())
+			robot.update_motor_speed(forced=True)
+			if autoreconnect_socket:
+				print("looking for new socket connection")
+				s = network_sock()
+				s.connect(server_ip, server_port)
+				print("new socket connected")
+				sock_thread = threading.Thread(target=socket_thread, args=(s, robot))
+				sock_thread.start()
+			else:
+				run_flag = False
 
-		#	s.send(commands.format_arr(commands.ok()))
-
-		robot.update_robot_controller()
+		robot.update_motor_speed()
+		robot.get_encoder_values()
+		robot.get_button_values()
+		robot.handle_buttons()
