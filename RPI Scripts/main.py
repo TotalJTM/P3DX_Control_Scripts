@@ -234,18 +234,34 @@ class P3_DX_robot:
 
 
 #function to handle socket message commands
-#returns items if all works properly, returns none if something failes
+#returns items if all works properly, returns none if something fails
+#this function can only handle json strings formatted like '{"arr":[{more json entries}]},'
+#if multiple json objects are in the string, this function can handle it so long as there is not more than one list
 def handle_message_commands(message):
-	#try to decode and load json object (multiple messages can be in one array sometimes and the program crashes)
+	#try statement in case json string really isnt json
 	try:
+		#decode message and build some starting variables/lists
 		message = message.decode()
 		combined_message = []
-		message = message.split(',')[0:-1]
-		print(message)
-		for arr_entry in message:
-			arr_entry = json.loads(arr_entry)
-			for item in arr_entry["arr"]:
-				combined_message.append(item)
+		split_message = []
+		last_ind = 0
+		#iteratee through message chars looking for end of json list ']},'
+		for ind, c in enumerate(message):
+			if c == ',':
+				if message[ind-1] == '}' and message[ind-2] == ']':
+					#split the message into seperate json strings
+					split_message.append(message[last_ind:ind])
+					last_ind = ind+1
+		#iter through split messages
+		for arr_entry in split_message:
+			#try to load message fragment as a json object, append it to list if possible
+			try:
+				arr_entry = json.loads(arr_entry)
+				for item in arr_entry["arr"]:
+					combined_message.append(item)
+			except:
+				print(f'couldnt handle {arr_entry}')
+		#return the combined message
 		return combined_message
 	except:
 		print("failed combination")
@@ -287,10 +303,10 @@ def socket_thread(socket, robot):
 if __name__ == '__main__':
 
 	#start arduino serial connection on port 0 with linux device prefix
-	#arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
+	arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
 	#start arduino serial connection on port 24 with windows device prefix
 	#arduino = serial_port(115200,port=24,prefix='COM')
-	arduino = serial_port(115200,port=23,prefix='COM')
+	#arduino = serial_port(115200,port=23,prefix='COM')
 	#print controller assigned and receive "CONTROL STARTED" message from arduino
 	print("controller assigned")
 	print(arduino.receive())
@@ -317,9 +333,9 @@ if __name__ == '__main__':
 	robot.start_robot_update_timers()
 
 	#start a music box object
-	#robot.start_music_box(1, tempo=160)
+	robot.start_music_box(1, tempo=160)
 	#robot.start_music_box(2, tempo=114)
-	robot.start_music_box(3, tempo=144)
+	#robot.start_music_box(3, tempo=144)
 
 	#while the run_flag is true
 	while run_flag:
@@ -346,5 +362,5 @@ if __name__ == '__main__':
 		robot.update_motor_speed()
 		robot.get_encoder_values()
 		robot.get_button_values()
-		#robot.handle_buttons()
+		robot.handle_buttons()
 		robot.handle_music_box()

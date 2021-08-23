@@ -6,7 +6,7 @@ import time
 
 host_ip = '192.168.1.5'
 server_port = 12345
-drive_type = 1
+drive_type = 2
 
 if __name__ == "__main__":
 	s = network_sock()
@@ -42,24 +42,24 @@ if __name__ == "__main__":
 				if drive_type == 1:
 
 					if event["event"] == "ABS_Y":
-						left_motor = joy.normalize_joy(event["value"])
+						left_motor = joy.normalize_joy(int(event["value"]))
 						for item in commands.motor(left_motor_val=left_motor):
 							pay_pack.append(item)
 
 					if event["event"] == "ABS_RY":
-						right_motor = joy.normalize_joy(event["value"])
+						right_motor = joy.normalize_joy(int(event["value"]))
 						for item in commands.motor(right_motor_val=right_motor):
 							pay_pack.append(item)
 
 					if event["event"] == "BTN_TR":
-						if event["value"] == 1:
-							joy.limit = 40
+						if int(event["value"]) == 1:
+							joy.speed_limit = 40
 							left_motor = left_motor*4
 							right_motor = right_motor*4
 						else:
-							joy.limit = 15
-							left_motor = left_motor/(40/15)
-							right_motor = right_motor/(40/15)
+							joy.speed_limit = 9.0
+							left_motor = left_motor/(40/9.0)
+							right_motor = right_motor/(40/9.0)
 
 						for item in commands.motor(right_motor_val=right_motor, left_motor_val=left_motor):
 							pay_pack.append(item)
@@ -67,22 +67,22 @@ if __name__ == "__main__":
 
 				elif drive_type == 2:
 					if event["event"] == "ABS_RX":
-						x_joy_R = event["event"]
+						x_joy_R = int(event["value"])
 						left_motor, right_motor = joy.mix_joy(x_joy_R, y_joy_R)
 						for item in commands.motor(left_motor_val=left_motor, right_motor_val=right_motor):
 							pay_pack.append(item)
 
 					if event["event"] == "ABS_RY":
-						y_joy_R = event["event"]
+						y_joy_R = int(event["value"])
 						left_motor, right_motor = joy.mix_joy(x_joy_R, y_joy_R)
 						for item in commands.motor(left_motor_val=left_motor, right_motor_val=right_motor):
 							pay_pack.append(item)
 
 					if event["event"] == "BTN_TR":
-						if event["event"] == 1:
-							joy.limit = 40
+						if int(event["value"]) == 1:
+							joy.speed_limit = 40
 						else:
-							joy.limit = 10
+							joy.speed_limit = 9.0
 
 						left_motor, right_motor = joy.mix_joy(x_joy_R, y_joy_R)
 						for item in commands.motor(left_motor_val=left_motor, right_motor_val=right_motor):
