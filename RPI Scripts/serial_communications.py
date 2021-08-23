@@ -59,7 +59,7 @@ class serial_port:
 			response = self.sp.readline()
 			print(response)
 			if response:
-				return response..decode('utf-8')
+				return response.decode('utf-8')
 			else:
 				return None
 		else:

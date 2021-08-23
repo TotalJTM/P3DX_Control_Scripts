@@ -4,6 +4,7 @@ from math import pi, cos
 
 from _thread import *
 import threading
+
 #this class is not fully tested yet, assume multithreading does not currently work
 class joy_device():
 	def __init__(self, device):
@@ -15,35 +16,39 @@ class joy_device():
 		self.gamepad_thread = None
 		self.gamepad_thread_active = False
 
-def queue_gamepade_input(self):
-	while self.gamepad_thread_active:
-		new_input = get_gamepad_input()
-		for item in new_input:
-			self.gamepad_queue.append(item)
-	else:
-		print("gamepad thread stopped")
+	def queue_gamepad_input(self):
+		while self.gamepad_thread_active:
+			new_input = self.get_gamepad_input()
+			for item in new_input:
+				self.gamepad_queue.append(item)
+		else:
+			print("gamepad thread stopped")
 
-def get_gamepad_input(self):
-	list_events = []
-	events = get_gamepad()
-	for event in events:
-		if event.device.manager == self.device_id:
-			list_events.append({"event":event.code,"value":event.state})
-	return list_events
+	def get_gamepad_input(self):
+		list_events = []
+		events = get_gamepad()
+		for event in events:
+			if event.device.manager == self.device_id:
+				list_events.append({"event":event.code,"value":event.state})
+		return list_events
 
-def start_gamepad_thread(self):
-	self.gamepad_thread_active = True
-	self.gamepad_thread = threading.Thread(target=queue_gamepade_input)
-	self.gamepad_thread.start()
+	def start_gamepad_thread(self):
+		self.gamepad_thread_active = True
+		self.gamepad_thread = threading.Thread(target=self.queue_gamepad_input)
+		self.gamepad_thread.start()
 
-def stop_gamepad_thread(self):
-	self.gamepad_thread_active = False
-	self.gamepad_thread = None
+	def stop_gamepad_thread(self):
+		self.gamepad_thread_active = False
+		self.gamepad_thread = None
 
-class joy_mixing():
-	def normalize_joy(val, joystick_max_val, limit):
+	def pop_gamepad_queue(self):
+		local_queue = self.gamepad_queue
+		self.gamepad_queue = []
+		return local_queue
+
+	def normalize_joy(self, val):
 	    #NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-	    newval = (((val+joystick_max_val)*(limit*2))/(2*joystick_max_val))-limit
+	    newval = (((val+self.joystick_max_val)*(self.speed_limit*2))/(2*self.joystick_max_val))-self.speed_limit
 	    #print(newval)
 	    if -2 < newval < 2:
 	        return 0
@@ -52,13 +57,13 @@ class joy_mixing():
 
 	#https://home.kendra.com/mauser/joystick.html
 
-	def mix_joy(xval, yval, deadzone):
-	    newx = (((xval+joystick_max_val)*(100*2))/(2*joystick_max_val))-100
-	    newy = (((yval+joystick_max_val)*(100*2))/(2*joystick_max_val))-100
+	def mix_joy(self, xval, yval):
+	    newx = (((xval+self.joystick_max_val)*(100*2))/(2*self.joystick_max_val))-100
+	    newy = (((yval+self.joystick_max_val)*(100*2))/(2*self.joystick_max_val))-100
 
-	    if -deadzone < newx < deadzone:
+	    if -self.deadzone < newx < self.deadzone:
 	        newx = 0
-	    if -deadzone < newy < deadzone:
+	    if -self.deadzone < newy < self.deadzone:
 	        newy = 0
 
 	    newx = -1 * newx
@@ -67,7 +72,10 @@ class joy_mixing():
 	    left = ((V-W)/2)/100
 	    right = ((V+W)/2)/100
 	    #print(f'l: {left} ||| r: {right}')
-	    left = limit * left
-	    right = limit * right #((newy*limit)/100)
+	    left = self.speed_limit * left
+	    right = self.speed_limit * right #((newy*limit)/100)
 
 	    return left, right
+
+	def stop_thread(self):
+		self.gamepad_thread_active = False

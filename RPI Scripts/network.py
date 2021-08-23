@@ -19,7 +19,9 @@ class network_sock:
 
     #bind function to host a socket on the designated host and port
     #host defaults to local IP address if no arg given
-    def bind(self, port, host=self.sock.gethostbyname(self.sock.gethostname())):
+    def bind(self, port, host=None):
+        if host is None:
+            host = self.sock.gethostbyname(self.sock.gethostname())
         #bind the socket and start 5 listeners
         self.sock.bind((host, port))
         self.sock.listen(5)

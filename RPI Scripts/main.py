@@ -1,3 +1,6 @@
+#JTM 2021
+#the main function to run the P3-DX robot in a teleoperated mode
+
 from network import network_sock
 from robot_communications import commands
 from serial_communications import serial_port
@@ -114,7 +117,7 @@ class P3_DX_robot:
 	def get_encoder_values(self):
 		if self.encoder_update_timer.check_timer():
 			self.send_message(11)
-			returned = self.receive_arduino_message()
+			returned = self.get_arduino_message()
 			if returned is not None:
 				cmd = returned[0]
 				data = returned[1]
@@ -129,7 +132,7 @@ class P3_DX_robot:
 	def get_button_values(self):
 		if self.button_update_timer.check_timer():
 			self.send_message(20)
-			returned = self.receive_arduino_message()
+			returned = self.get_arduino_message()
 			if returned is not None:
 				cmd = returned[0]
 				data = returned[1]
@@ -226,8 +229,8 @@ class P3_DX_robot:
 	#removes formatting and isolates cmd and data
 	def decode_received_arduino_message(self, response):
 		resp = response.strip('\r\n').strip('<').strip('>')
-				resp = resp.split(',')
-				return (resp[0], resp[1:])
+		resp = resp.split(',')
+		return (resp[0], resp[1:])
 
 
 #function to handle socket message commands
@@ -236,13 +239,16 @@ def handle_message_commands(message):
 	#try to decode and load json object (multiple messages can be in one array sometimes and the program crashes)
 	try:
 		message = message.decode()
-		if message.count('arr') > 1:
-			return None
-		message = json.loads(message)
-
-		items = message["arr"]
-		return items
+		combined_message = []
+		message = message.split(',')[0:-1]
+		print(message)
+		for arr_entry in message:
+			arr_entry = json.loads(arr_entry)
+			for item in arr_entry["arr"]:
+				combined_message.append(item)
+		return combined_message
 	except:
+		print("failed combination")
 		return None
 
 #
@@ -269,6 +275,7 @@ def socket_thread(socket, robot):
 			print(f'received {message}')
 			#get formatted message commands
 			message_items = handle_message_commands(message)
+			print(f'message items {message_items}')
 			#update robot values if message items are valid
 			if message_items is not None:
 				robot.update_values_with_json(message_items)
@@ -280,9 +287,10 @@ def socket_thread(socket, robot):
 if __name__ == '__main__':
 
 	#start arduino serial connection on port 0 with linux device prefix
-	arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
+	#arduino = serial_port(115200, port=0, prefix='/dev/ttyACM')
 	#start arduino serial connection on port 24 with windows device prefix
 	#arduino = serial_port(115200,port=24,prefix='COM')
+	arduino = serial_port(115200,port=23,prefix='COM')
 	#print controller assigned and receive "CONTROL STARTED" message from arduino
 	print("controller assigned")
 	print(arduino.receive())
@@ -338,5 +346,5 @@ if __name__ == '__main__':
 		robot.update_motor_speed()
 		robot.get_encoder_values()
 		robot.get_button_values()
-		robot.handle_buttons()
+		#robot.handle_buttons()
 		robot.handle_music_box()
